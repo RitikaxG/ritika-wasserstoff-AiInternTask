@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Summarizer & Keyword Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #777;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>PDF Summarizer & Keyword Extractor</h1>
+        <p>Upload a PDF file to receive a summary and relevant keywords.</p>
+        <form id="uploadForm">
+            <input type="file" name="file" id="fileInput" accept=".pdf" required>
+            <br>
+            <button type="submit">Upload and Process</button>
+        </form>
+        <div id="responseContainer" class="response" style="display: none;">
+            <h2>Processing Result:</h2>
+            <strong>Summary:</strong>
+            <p id="summary"></p>
+            <strong>Keywords:</strong>
+            <ul id="keywords"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("uploadForm").onsubmit = async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById("fileInput");
+            if (fileInput.files.length === 0) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById("responseContainer").style.display = "block";
+                    document.getElementById("summary").textContent = result.summary;
+                    const keywordsList = document.getElementById("keywords");
+                    keywordsList.innerHTML = "";
+                    result.keywords.forEach(keyword => {
+                        const li = document.createElement("li");
+                        li.textContent = keyword;
+                        keywordsList.appendChild(li);
+                    });
+                } else {
+                    alert(result.error || "An error occurred during file upload.");
+                }
+            } catch (error) {
+                alert("An unexpected error occurred. Please try again later.");
+                console.error(error);
+            }
+        };
+    </script>
+</body>
+
+</html>

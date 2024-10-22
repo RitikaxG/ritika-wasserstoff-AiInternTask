@@ -4,11 +4,13 @@ import fitz  # PyMuPDF
 import logging
 from hashlib import sha256
 import time
+from retry import retry
 
 # Logging setup
-logging.basicConfig(filename='pipeline_errors.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='pdf_utils.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Function to download a PDF
+# Function to download a PDF with retry mechanism
+@retry(tries=3, delay=5, backoff=2)
 def download_pdf(url, folder):
     try:
         response = requests.get(url, stream=True, timeout=10, verify=False)
@@ -17,12 +19,13 @@ def download_pdf(url, folder):
             with open(filename, "wb") as pdf_file:
                 for chunk in response.iter_content(chunk_size=1024):
                     pdf_file.write(chunk)
-            print(f"Downloaded: {filename}")
+            logging.info(f"Downloaded: {filename}")
             return filename
         else:
             logging.error(f"Failed to download {url} with status code {response.status_code}")
     except requests.exceptions.RequestException as e:
         logging.error(f"Error downloading {url}: {e}")
+        raise
     return None
 
 # Function to parse a PDF and extract text
@@ -35,8 +38,8 @@ def parse_pdf(filepath):
             page = document.load_page(page_num)
             text += page.get_text()
         document.close()
-        elapsed_time = time.time() - start_time
-        print(f"Parsed: {filepath} in {elapsed_time:.2f} seconds")
+        end_time = time.time()
+        logging.info(f"Parsed {filepath} in {end_time - start_time:.2f} seconds.")
         return text
     except Exception as e:
         logging.error(f"Error parsing {filepath}: {e}")
@@ -81,6 +84,6 @@ def save_parsed_text(filepath, text):
     try:
         with open(text_filename, "w") as text_file:
             text_file.write(text)
-        print(f"Saved parsed text to: {text_filename}")
+        logging.info(f"Saved parsed text to: {text_filename}")
     except Exception as e:
         logging.error(f"Error saving parsed text for {filepath}: {e}")

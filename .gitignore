@@ -57,3 +57,9 @@ mongodb_uri.txt
 
 # Retry Failed Downloads
 failed_downloads/
+
+
+*.log
+PDFSummary/.json
+
+uploads
