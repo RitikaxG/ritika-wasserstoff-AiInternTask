@@ -68,6 +68,11 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: left;
         }
+
+        #loading {
+            display: none;
+            margin-top: 20px;
+        }
     </style>
 </head>
 
@@ -80,6 +85,9 @@
             <br>
             <button type="submit">Upload and Process</button>
         </form>
+        <div id="loading">
+            <p>Loading... Please wait while your file is being processed.</p>
+        </div>
         <div id="responseContainer" class="response" style="display: none;">
             <h2>Processing Result:</h2>
             <strong>Summary:</strong>
@@ -94,10 +102,17 @@
             e.preventDefault();
 
             const fileInput = document.getElementById("fileInput");
+            const loadingElement = document.getElementById("loading");
+            const responseContainer = document.getElementById("responseContainer");
+
             if (fileInput.files.length === 0) {
                 alert("Please select a file first.");
                 return;
             }
+
+            // Show loading text and hide the response while processing
+            loadingElement.style.display = "block";
+            responseContainer.style.display = "none";
 
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
@@ -110,8 +125,11 @@
 
                 const result = await response.json();
 
+                // Hide loading text
+                loadingElement.style.display = "none";
+
                 if (response.ok) {
-                    document.getElementById("responseContainer").style.display = "block";
+                    responseContainer.style.display = "block";
                     document.getElementById("summary").textContent = result.summary;
                     const keywordsList = document.getElementById("keywords");
                     keywordsList.innerHTML = "";
@@ -124,6 +142,7 @@
                     alert(result.error || "An error occurred during file upload.");
                 }
             } catch (error) {
+                loadingElement.style.display = "none";
                 alert("An unexpected error occurred. Please try again later.");
                 console.error(error);
             }

@@ -37,6 +37,8 @@ def upload_file():
 
         # Process the file synchronously
         try:
+            start_time = time.time()
+
             # Metadata insertion for the uploaded file
             insert_metadata(filepath, "Uploaded via Web UI")
 
@@ -46,7 +48,7 @@ def upload_file():
                 # Generate summary and keywords
                 summary = generate_summary(parsed_text)
                 keywords = extract_keywords(parsed_text)
-                processing_time = time.time()
+                processing_time = time.time() - start_time
 
                 # Save parsed text (optional)
                 save_parsed_text(filepath, parsed_text)
@@ -83,4 +85,3 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
