@@ -5,4 +5,4 @@ PyMuPDF
 psutil
 retry
 gunicorn
-bson
+
