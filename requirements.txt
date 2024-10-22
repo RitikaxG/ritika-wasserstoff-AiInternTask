@@ -1,8 +1,12 @@
-flask
-pymongo
-requests
-PyMuPDF
+
 psutil
 retry
 gunicorn
 
+Flask
+Flask-CORS
+pymongo
+PyMuPDF
+requests
+bson
+PyPDF2

@@ -1,89 +1,99 @@
-import os
 import requests
 import fitz  # PyMuPDF
 import logging
 from hashlib import sha256
 import time
 from retry import retry
+from PyPDF2 import PdfReader
 
 # Logging setup
 logging.basicConfig(filename='pdf_utils.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Function to download a PDF with retry mechanism
 @retry(tries=3, delay=5, backoff=2)
-def download_pdf(url, folder):
+def download_pdf(url):
     try:
         response = requests.get(url, stream=True, timeout=10, verify=False)
         if response.status_code == 200:
-            filename = os.path.join(folder, sha256(url.encode()).hexdigest() + ".pdf")
-            with open(filename, "wb") as pdf_file:
-                for chunk in response.iter_content(chunk_size=1024):
-                    pdf_file.write(chunk)
-            logging.info(f"Downloaded: {filename}")
-            return filename
+            file_content = response.content
+            file_name = sha256(url.encode()).hexdigest() + ".pdf"
+            logging.info(f"Downloaded: {file_name}")
+            return file_name, file_content
         else:
             logging.error(f"Failed to download {url} with status code {response.status_code}")
     except requests.exceptions.RequestException as e:
         logging.error(f"Error downloading {url}: {e}")
         raise
-    return None
-
-# Function to parse a PDF and extract text
-def parse_pdf(filepath):
-    try:
-        start_time = time.time()
-        document = fitz.open(filepath)
-        text = ""
-        for page_num in range(document.page_count):
-            page = document.load_page(page_num)
-            text += page.get_text()
-        document.close()
-        end_time = time.time()
-        logging.info(f"Parsed {filepath} in {end_time - start_time:.2f} seconds.")
-        return text
-    except Exception as e:
-        logging.error(f"Error parsing {filepath}: {e}")
-    return None
-
-# Function to move a PDF to a respective folder based on its page count
-def move_pdf_to_respective_folder(filepath, short_folder, medium_folder, long_folder):
-    try:
-        document = fitz.open(filepath)
-        page_count = document.page_count
-        document.close()
-
-        # Determine the appropriate folder
-        if 1 <= page_count <= 10:
-            destination_folder = os.path.join(short_folder, "pdfs")
-            parsed_text_folder = os.path.join(short_folder, "texts")
-        elif 11 <= page_count <= 30:
-            destination_folder = os.path.join(medium_folder, "pdfs")
-            parsed_text_folder = os.path.join(medium_folder, "texts")
-        else:
-            destination_folder = os.path.join(long_folder, "pdfs")
-            parsed_text_folder = os.path.join(long_folder, "texts")
-
-        # Ensure that the destination and parsed text folders exist
-        os.makedirs(destination_folder, exist_ok=True)
-        os.makedirs(parsed_text_folder, exist_ok=True)
-
-        # Move the file to the respective folder
-        new_filepath = os.path.join(destination_folder, os.path.basename(filepath))
-        os.rename(filepath, new_filepath)
-        logging.info(f"Moved file {filepath} to {new_filepath}")
-        return new_filepath, parsed_text_folder
-    except Exception as e:
-        logging.error(f"Error moving file {filepath}: {e}")
     return None, None
 
-# Function to save parsed text to a .txt file
-def save_parsed_text(filepath, text):
-    text_folder = os.path.dirname(filepath).replace("pdfs", "texts")
-    os.makedirs(text_folder, exist_ok=True)
-    text_filename = os.path.join(text_folder, os.path.basename(filepath).replace(".pdf", ".txt"))
+# Function to parse a PDF from a file-like object
+def parse_pdf(file_like_object):
     try:
-        with open(text_filename, "w") as text_file:
-            text_file.write(text)
-        logging.info(f"Saved parsed text to: {text_filename}")
+        pdf_reader = PdfReader(file_like_object)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+        return text
     except Exception as e:
-        logging.error(f"Error saving parsed text for {filepath}: {e}")
+        logging.error(f"Error parsing PDF: {e}")
+        return None
+
+# Function to save parsed text to a file-like storage (optional: for debugging or further use)
+def save_parsed_text(file_like_name, parsed_text):
+    try:
+        txt_file_name = file_like_name.replace('.pdf', '.txt')
+        with open(txt_file_name, 'w') as txt_file:
+            txt_file.write(parsed_text)
+        logging.info(f"Saved parsed text to {txt_file_name}")
+    except Exception as e:
+        logging.error(f"Error saving parsed text: {e}")
+
+# Function to determine the number of pages in a PDF file-like object
+def determine_pdf_page_count(file_like_object):
+    try:
+        document = fitz.open(stream=file_like_object, filetype="pdf")
+        page_count = document.page_count
+        document.close()
+        return page_count
+    except Exception as e:
+        logging.error(f"Error determining page count: {e}")
+        return None
+
+# Function to categorize a PDF based on page count
+def categorize_pdf(file_like_object):
+    try:
+        page_count = determine_pdf_page_count(file_like_object)
+        
+        if page_count is None:
+            return "unknown"
+
+        if 1 <= page_count <= 10:
+            return "short"
+        elif 11 <= page_count <= 30:
+            return "medium"
+        else:
+            return "long"
+    except Exception as e:
+        logging.error(f"Error categorizing PDF: {e}")
+        return "unknown"
+
+# Function to handle the entire PDF processing pipeline
+def process_pdf(file_like_object):
+    try:
+        # Extract the text content from the PDF
+        parsed_text = parse_pdf(file_like_object)
+
+        if not parsed_text:
+            logging.error("Parsed text is empty or None")
+            return None
+
+        # Determine PDF category based on the page count
+        pdf_category = categorize_pdf(file_like_object)
+
+        logging.info(f"PDF processed. Category: {pdf_category}")
+        return parsed_text, pdf_category
+
+    except Exception as e:
+        logging.error(f"Error in processing PDF: {e}")
+        return None, None
+

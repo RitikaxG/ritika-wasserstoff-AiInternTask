@@ -101,46 +101,5 @@ def extract_keywords(text):
     
     return domain_specific_keywords
 
-# Function to iterate through each folder and perform summarization and keyword extraction
-def process_parsed_texts(main_folder):
-    for folder_type in ['short', 'medium', 'long']:
-        text_folder = os.path.join(main_folder, folder_type, 'texts')
-        summary_folder = os.path.join(main_folder, folder_type, 'summaries')
-        keywords_folder = os.path.join(main_folder, folder_type, 'keywords')
+# Functions `generate_summary` and `extract_keywords` have been updated to work with text rather than requiring file paths.
 
-        # Ensure the summary and keyword folders exist
-        os.makedirs(summary_folder, exist_ok=True)
-        os.makedirs(keywords_folder, exist_ok=True)
-
-        # Process each text file in the folder
-        for text_file in os.listdir(text_folder):
-            if text_file.endswith('.txt'):
-                text_file_path = os.path.join(text_folder, text_file)
-                
-                # Read the content of the parsed text file
-                with open(text_file_path, 'r') as file:
-                    text_content = file.read()
-                
-                # Generate summary
-                summary = generate_summary(text_content)
-                
-                # Extract keywords
-                keywords = extract_keywords(text_content)
-
-                # Save the summary
-                summary_file_path = os.path.join(summary_folder, text_file.replace('.txt', '_summary.txt'))
-                with open(summary_file_path, 'w') as summary_file:
-                    summary_file.write(summary)
-                print(f"Saved summary to: {summary_file_path}")
-
-                # Save the keywords
-                keywords_file_path = os.path.join(keywords_folder, text_file.replace('.txt', '_keywords.txt'))
-                with open(keywords_file_path, 'w') as keywords_file:
-                    keywords_file.write('\n'.join(keywords))
-                print(f"Saved keywords to: {keywords_file_path}")
-
-# Execute the processing function
-if __name__ == "__main__":
-    # Path to the main folder containing parsed texts in short, medium, long subfolders
-    main_folder = os.path.join(os.path.expanduser("~"), "Desktop", "PDFDownloadParse", "PDFSummary")
-    process_parsed_texts(main_folder)

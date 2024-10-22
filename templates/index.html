@@ -100,24 +100,31 @@
     <script>
         document.getElementById("uploadForm").onsubmit = async function (e) {
             e.preventDefault();
-    
+
             const fileInput = document.getElementById("fileInput");
             if (fileInput.files.length === 0) {
                 alert("Please select a file first.");
                 return;
             }
-    
+
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
-    
+
+            // Updated endpoint for Render deployment
+            const endpoint = "https://ritika-wasserstoff-aiintern-task-2.onrender.com/upload";
+
+            document.getElementById("loading").style.display = "block";
+
             try {
-                const response = await fetch("/upload", {
+                const response = await fetch(endpoint, {
                     method: "POST",
                     body: formData,
                 });
-    
+
+                document.getElementById("loading").style.display = "none";
+
                 const result = await response.json();
-    
+
                 if (response.ok) {
                     document.getElementById("responseContainer").style.display = "block";
                     document.getElementById("summary").textContent = result.summary;
@@ -132,12 +139,12 @@
                     alert(result.error || "An error occurred during file upload.");
                 }
             } catch (error) {
+                document.getElementById("loading").style.display = "none";
                 alert("An unexpected error occurred. Please try again later.");
                 console.error(error);
             }
         };
     </script>
-    
 </body>
 
 </html>

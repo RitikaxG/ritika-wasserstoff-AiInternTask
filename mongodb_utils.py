@@ -1,4 +1,3 @@
-import os
 import pymongo
 from datetime import datetime
 import bson.json_util as bson_json  # For exporting MongoDB data
@@ -30,31 +29,30 @@ def get_collection(db_name, collection_name):
         logging.error(f"Could not connect to MongoDB to get collection: {collection_name}")
     return None
 
-# Function to insert metadata after downloading a PDF
-def insert_metadata(filename, url):
+# Function to insert metadata after processing a PDF
+def insert_metadata(file_metadata, url):
     metadata = {
-        "document_name": filename.split('/')[-1],
-        "path": filename,
-        "size": os.path.getsize(filename),
+        "document_name": file_metadata['filename'],
+        "size": file_metadata['size'],
         "url": url,
-        "status": "downloaded",
+        "status": "uploaded",
         "timestamp": datetime.now()
     }
     try:
         collection = get_collection("pdf_database", "pdf_documents")
         if collection:
             collection.insert_one(metadata)
-            logging.info(f"Inserted metadata for {filename}")
+            logging.info(f"Inserted metadata for {file_metadata['filename']}")
     except Exception as e:
-        logging.error(f"Error inserting metadata for {filename}: {e}")
+        logging.error(f"Error inserting metadata for {file_metadata['filename']}: {e}")
 
 # Function to update MongoDB with processing results
-def update_document(filepath, summary, keywords, processing_time):
+def update_document(file_metadata, summary, keywords, processing_time):
     try:
         collection = get_collection("pdf_database", "pdf_documents")
         if collection:
             collection.update_one(
-                {"path": filepath},
+                {"document_name": file_metadata['filename']},
                 {"$set": {
                     "summary": summary,
                     "keywords": keywords,
@@ -65,22 +63,22 @@ def update_document(filepath, summary, keywords, processing_time):
                     "timestamp": datetime.now()
                 }}
             )
-            logging.info(f"Updated document metadata for {filepath}")
+            logging.info(f"Updated document metadata for {file_metadata['filename']}")
     except Exception as e:
-        logging.error(f"Error updating document metadata for {filepath}: {e}")
+        logging.error(f"Error updating document metadata for {file_metadata['filename']}: {e}")
 
 # Function to update document status in case of an error
-def update_document_error(filepath, error_message):
+def update_document_error(file_metadata, error_message):
     try:
         collection = get_collection("pdf_database", "pdf_documents")
         if collection:
             collection.update_one(
-                {"path": filepath},
+                {"document_name": file_metadata['filename']},
                 {"$set": {"status": "error", "error_message": error_message, "timestamp": datetime.now()}}
             )
-            logging.error(f"Updated document with error for {filepath}: {error_message}")
+            logging.error(f"Updated document with error for {file_metadata['filename']}: {error_message}")
     except Exception as e:
-        logging.error(f"Error updating error status for {filepath}: {e}")
+        logging.error(f"Error updating error status for {file_metadata['filename']}: {e}")
 
 # Function to export MongoDB collection to a JSON file
 def export_collection(output_file):
