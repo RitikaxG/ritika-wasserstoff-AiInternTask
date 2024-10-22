@@ -4,3 +4,4 @@ requests
 PyMuPDF
 psutil
 retry
+gunicorn
