@@ -32,6 +32,13 @@ def upload_file():
         logging.error("No selected file")
         return jsonify({"error": "No selected file"}), 400
 
+    # Check file size to prevent large uploads (e.g., max 5MB)
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    if file_length > 5 * 1024 * 1024:  # 5MB limit
+        return jsonify({"error": "File size exceeds limit (5MB max)."}), 400
+    file.seek(0)  # Reset the file pointer
+
     if file and file.filename.endswith('.pdf'):
         # Save the uploaded file to a designated folder
         try:
