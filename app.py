@@ -20,6 +20,7 @@ def index():
 
 # Route to handle file upload and process synchronously
 @app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
@@ -32,41 +33,30 @@ def upload_file():
         try:
             start_time = time.time()
 
-            # Metadata insertion for the uploaded file
-            insert_metadata(file.filename, "Uploaded via Web UI")
+            # Read the file directly without saving it
+            file_content = file.read()
 
-            # Start processing the PDF file (read the file directly without saving locally)
-            parsed_text = parse_pdf(file)
+            # Start processing the PDF file
+            parsed_text = parse_pdf(file_content)
             if parsed_text:
                 # Generate summary and keywords
                 summary = generate_summary(parsed_text)
                 keywords = extract_keywords(parsed_text)
                 processing_time = time.time() - start_time
 
-                # Prepare JSON data for response and MongoDB
-                json_data = {
-                    "summary": summary,
-                    "keywords": keywords,
-                    "processing_time": processing_time,
-                    "timestamp": str(datetime.now())
-                }
-
-                # Update MongoDB with the results
-                update_document(file.filename, summary, keywords, processing_time)
-
                 # Return the summary and keywords as response
-                return jsonify(json_data), 200
+                return jsonify({"summary": summary, "keywords": keywords}), 200
 
             else:
-                update_document_error(file.filename, "Failed to parse PDF")
                 return jsonify({"error": "Failed to parse PDF"}), 500
 
         except Exception as e:
-            logging.error(f"Error processing file {file.filename}: {e}", exc_info=True)
+            logging.error(f"Error processing file {file.filename}: {str(e)}")
             return jsonify({"error": f"An error occurred while processing the file: {str(e)}"}), 500
 
     else:
         return jsonify({"error": "Invalid file type. Only PDF files are allowed."}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
