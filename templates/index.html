@@ -100,36 +100,26 @@
     <script>
         document.getElementById("uploadForm").onsubmit = async function (e) {
             e.preventDefault();
-
+    
             const fileInput = document.getElementById("fileInput");
-            const loadingElement = document.getElementById("loading");
-            const responseContainer = document.getElementById("responseContainer");
-
             if (fileInput.files.length === 0) {
                 alert("Please select a file first.");
                 return;
             }
-
-            // Show loading text and hide the response while processing
-            loadingElement.style.display = "block";
-            responseContainer.style.display = "none";
-
+    
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
-
+    
             try {
                 const response = await fetch("/upload", {
                     method: "POST",
                     body: formData,
                 });
-
+    
                 const result = await response.json();
-
-                // Hide loading text
-                loadingElement.style.display = "none";
-
+    
                 if (response.ok) {
-                    responseContainer.style.display = "block";
+                    document.getElementById("responseContainer").style.display = "block";
                     document.getElementById("summary").textContent = result.summary;
                     const keywordsList = document.getElementById("keywords");
                     keywordsList.innerHTML = "";
@@ -142,12 +132,12 @@
                     alert(result.error || "An error occurred during file upload.");
                 }
             } catch (error) {
-                loadingElement.style.display = "none";
                 alert("An unexpected error occurred. Please try again later.");
                 console.error(error);
             }
         };
     </script>
+    
 </body>
 
 </html>
