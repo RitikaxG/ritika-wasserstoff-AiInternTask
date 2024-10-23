@@ -138,14 +138,7 @@ The pipeline has been tested with short, medium, and long documents to ensure pr
 - **Incomplete Downloads**: Check network connection. The `download_pdf` function retries a few times before giving up.
 - **Error Logs**: Check `pipeline_errors.log` for detailed error messages.
 
-## Docker Setup (Optional)
-To set up the pipeline in a Docker container:
-1. Create a `Dockerfile` and add all necessary environment configurations.
-2. Build and run the container.
-```sh
-docker build -t pdf_pipeline .
-docker run -d -p 27017:27017 pdf_pipeline
-```
+
 
 ## Contributing
 Contributions are welcome! Please create a pull request with a description of your changes.
