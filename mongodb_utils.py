@@ -1,7 +1,6 @@
 import pymongo
-from pymongo import json_util as bson_json  # For exporting MongoDB data using json_util
-from pymongo.errors import ConnectionFailure
 from datetime import datetime
+from bson import json_util as bson_json  # Correct import for exporting MongoDB data
 import logging
 import time
 from retry import retry
@@ -16,7 +15,7 @@ def get_mongo_client(uri="mongodb://localhost:27017/"):
         client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=5000)
         client.server_info()  # Forces a call to check the server status
         return client
-    except ConnectionFailure as e:
+    except pymongo.errors.ConnectionFailure as e:
         logging.error(f"Failed to connect to MongoDB: {e}")
         raise
 

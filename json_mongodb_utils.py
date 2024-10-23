@@ -1,8 +1,8 @@
-# json_mongodb_utils.py
 import json
 import pymongo
 import logging
 from datetime import datetime
+from bson import json_util as bson_json  # Corrected import for json_util
 
 # MongoDB connection setup
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -62,3 +62,4 @@ def handle_error(filepath, error_message):
         logging.error(f"Error logged in MongoDB for {filepath}: {error_message}")
     except Exception as e:
         logging.error(f"Failed to log error in MongoDB for {filepath}: {e}")
+

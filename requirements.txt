@@ -8,7 +8,6 @@ Flask-CORS
 pymongo
 PyMuPDF
 requests
-bson
 PyPDF2
 boto3
 
