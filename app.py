@@ -1,5 +1,6 @@
-from flask import Flask, request, render_template, jsonify
 import os
+import boto3
+from flask import Flask, request, render_template, jsonify
 import logging
 import json
 from pdf_utils import parse_pdf
@@ -7,19 +8,29 @@ from summarization import generate_summary, extract_keywords
 from mongodb_utils import insert_metadata, update_document, update_document_error
 from datetime import datetime
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
+
+# AWS S3 setup
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+bucket_name = os.getenv('S3_BUCKET_NAME')
 
 # Logging setup
 logging.basicConfig(filename='app_errors.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Route to serve index.html for file upload
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Route to handle file upload and process synchronously
-@app.route('/upload', methods=['POST'])
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -33,30 +44,44 @@ def upload_file():
         try:
             start_time = time.time()
 
-            # Read the file directly without saving it
-            file_content = file.read()
+            # Upload file to S3
+            s3_key = f"uploads/{file.filename}"
+            s3_client.upload_fileobj(
+                file, bucket_name, s3_key,
+                ExtraArgs={"ContentType": "application/pdf"}
+            )
+
+            # Metadata insertion for the uploaded file
+            insert_metadata(s3_key, "Uploaded via Web UI")
 
             # Start processing the PDF file
-            parsed_text = parse_pdf(file_content)
+            s3_object = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
+            parsed_text = parse_pdf(s3_object['Body'])
+
             if parsed_text:
                 # Generate summary and keywords
                 summary = generate_summary(parsed_text)
                 keywords = extract_keywords(parsed_text)
                 processing_time = time.time() - start_time
 
+                # Update MongoDB with the results
+                update_document(s3_key, summary, keywords, processing_time)
+
                 # Return the summary and keywords as response
                 return jsonify({"summary": summary, "keywords": keywords}), 200
 
             else:
+                update_document_error(s3_key, "Failed to parse PDF")
                 return jsonify({"error": "Failed to parse PDF"}), 500
 
         except Exception as e:
-            logging.error(f"Error processing file {file.filename}: {str(e)}")
-            return jsonify({"error": f"An error occurred while processing the file: {str(e)}"}), 500
+            logging.error(f"Error processing file {file.filename}: {e}")
+            logging.error(traceback.format_exc())  # Include traceback for detailed debugging
+            return jsonify({"error": "An error occurred while processing the file"}), 500
 
     else:
         return jsonify({"error": "Invalid file type. Only PDF files are allowed."}), 400
 
-
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
