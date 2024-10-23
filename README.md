@@ -12,6 +12,8 @@ This repository provides a comprehensive pipeline for processing PDFs, which inc
 
 The pipeline makes use of Python libraries for PDF processing, concurrency, and MongoDB operations.
 
+![Output Image](output.png)
+
 ## Requirements
 
 - Python 3.7+
